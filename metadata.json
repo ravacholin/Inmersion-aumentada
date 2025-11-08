@@ -1,0 +1,8 @@
+{
+  "name": "Habl-AR",
+  "description": "An Augmented Reality app to learn contextual Spanish. Upload a photo or use your camera to identify an object and get culturally relevant phrases, not just translations.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}

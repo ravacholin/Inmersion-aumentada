@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Inmersión Aumentada 2</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.28.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/"
+  }
+}
+</script>
+    <style>
+      /* Custom scrollbar for a more modern look */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background-color: rgba(107, 114, 128, 0.5); /* gray-500 with opacity */
+        border-radius: 10px;
+        border: 2px solid transparent;
+        background-clip: content-box;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background-color: rgba(156, 163, 175, 0.7); /* gray-400 with opacity */
+      }
+
+      /* Custom animations */
+      @keyframes pulse-glow {
+        50% {
+          box-shadow: 0 0 0 8px rgba(56, 189, 248, 0.25), 0 0 0 16px rgba(56, 189, 248, 0.1);
+        }
+      }
+      .animate-pulse-glow {
+        animation: pulse-glow 2.5s infinite cubic-bezier(0.4, 0, 0.6, 1);
+        box-shadow: 0 0 0 0 rgba(56, 189, 248, 0);
+      }
+      .animate-fade-in {
+        animation: fade-in 0.5s ease-out forwards;
+      }
+      @keyframes fade-in {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+       @keyframes spin-slow {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      .animate-spin-slow {
+        animation: spin-slow 2s linear infinite;
+      }
+      @keyframes pulse-corner-glow {
+        50% {
+          border-color: rgba(56, 189, 248, 0.6); /* Tailwind cyan-400 */
+          box-shadow: 0 0 12px rgba(56, 189, 248, 0.4), 0 0 4px rgba(56, 189, 248, 0.3) inset;
+        }
+      }
+      .animate-pulse-corner-glow {
+        animation: pulse-corner-glow 3s infinite ease-in-out;
+      }
+    </style>
+</head>
+  <body class="bg-gray-900">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
