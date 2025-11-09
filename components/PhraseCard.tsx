@@ -16,6 +16,12 @@ const PhraseCard: React.FC<PhraseCardProps> = ({ phrase, isSaved, onToggleSave, 
   const handleCopyPhrase = async () => {
     try {
       await navigator.clipboard.writeText(phrase.spanish);
+
+      // Feedback háptico para dispositivos móviles
+      if ('vibrate' in navigator) {
+        navigator.vibrate(50); // Vibración corta de 50ms
+      }
+
       setShowCopied(true);
       setTimeout(() => setShowCopied(false), 2000);
     } catch (error) {
@@ -26,8 +32,12 @@ const PhraseCard: React.FC<PhraseCardProps> = ({ phrase, isSaved, onToggleSave, 
   return (
     <div className="bg-gray-800/50 border border-white/10 rounded-xl p-4 transition-all duration-300 hover:bg-gray-700/60 hover:border-white/20 flex items-center gap-4 animate-fade-in">
       <div
-        className="flex-grow cursor-pointer relative"
+        className="flex-grow cursor-pointer relative active:scale-[0.98] transition-transform"
         onClick={handleCopyPhrase}
+        onTouchEnd={(e) => {
+          e.preventDefault();
+          handleCopyPhrase();
+        }}
         role="button"
         tabIndex={0}
         onKeyDown={(e) => {
