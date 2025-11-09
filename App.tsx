@@ -1,15 +1,17 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { AnalysisResult, Phrase } from './types';
+import { AnalysisResult, Phrase, UserProfile } from './types';
 import { analyzeImage } from './services/geminiService';
 import CameraView from './components/CameraView';
 import AnalysisDisplay from './components/AnalysisDisplay';
 import Loader from './components/Loader';
 import ErrorMessage from './components/ErrorMessage';
-import { SparkleIcon, BookmarkIcon, UploadIcon, CameraIcon } from './components/Icons';
+import { SparkleIcon, BookmarkIcon, UploadIcon, CameraIcon, SignOutIcon } from './components/Icons';
 import SavedPhrasesDisplay from './components/SavedPhrasesDisplay';
 import ImageUploader from './components/ImageUploader';
+import LoginScreen from './components/LoginScreen';
 
 const App: React.FC = () => {
+  const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -25,6 +27,18 @@ const App: React.FC = () => {
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const savedUser = localStorage.getItem('userProfile');
+    if (savedUser) {
+      try {
+        setUser(JSON.parse(savedUser));
+      } catch (e) {
+        console.error("Failed to parse user profile from localStorage", e);
+        localStorage.removeItem('userProfile');
+      }
+    }
+  }, []);
 
   useEffect(() => {
     try {
@@ -54,27 +68,31 @@ const App: React.FC = () => {
   }, [inputMode, analysisResult, error]);
 
   useEffect(() => {
-    // Graceful check for screen.orientation support
     if (!window.screen.orientation) {
       console.warn("screen.orientation API not supported.");
       return;
     }
-
-    const handleOrientationChange = () => {
-      setOrientation(window.screen.orientation.angle);
-    };
-
-    const orientationApi = window.screen.orientation;
-    orientationApi.addEventListener('change', handleOrientationChange);
-
-    // Set initial orientation
+    const handleOrientationChange = () => setOrientation(window.screen.orientation.angle);
+    window.screen.orientation.addEventListener('change', handleOrientationChange);
     handleOrientationChange();
-
-    return () => {
-      orientationApi.removeEventListener('change', handleOrientationChange);
-    };
+    return () => window.screen.orientation.removeEventListener('change', handleOrientationChange);
   }, []);
   
+  const handleLoginSuccess = (profile: UserProfile) => {
+    setUser(profile);
+    localStorage.setItem('userProfile', JSON.stringify(profile));
+  };
+
+  const handleLogout = () => {
+    if (user && (window as any).google?.accounts?.id) {
+      (window as any).google.accounts.id.revoke(user.email, (done: any) => {
+        console.log('User token revoked.');
+      });
+    }
+    setUser(null);
+    localStorage.removeItem('userProfile');
+  };
+
   const isPhraseSaved = useCallback((phrase: Phrase) => {
     return savedPhrases.some(p => p.spanish === phrase.spanish && p.translation === phrase.translation);
   }, [savedPhrases]);
@@ -102,20 +120,15 @@ const App: React.FC = () => {
 
   const handleCaptureAndAnalyze = useCallback(async () => {
     if (!videoRef.current || !canvasRef.current || isLoading) return;
-
     setIsLoading(true);
     setError(null);
     setAnalysisResult(null);
-
     const video = videoRef.current;
     const canvas = canvasRef.current;
     const context = canvas.getContext('2d');
-
     if (context) {
       const videoWidth = video.videoWidth;
       const videoHeight = video.videoHeight;
-
-      // Adjust canvas for orientation
       if (orientation === 90 || orientation === 270) {
         canvas.width = videoHeight;
         canvas.height = videoWidth;
@@ -123,26 +136,17 @@ const App: React.FC = () => {
         canvas.width = videoWidth;
         canvas.height = videoHeight;
       }
-
       context.save();
-      // Translate to center and rotate
       context.translate(canvas.width / 2, canvas.height / 2);
       context.rotate(orientation * Math.PI / 180);
-      
       context.drawImage(video, -videoWidth / 2, -videoHeight / 2, videoWidth, videoHeight);
-      
       context.restore();
-
       const dataUrl = canvas.toDataURL('image/jpeg');
       setCurrentImage(dataUrl);
       setIsCameraActive(false);
-
       try {
         const base64Data = dataUrl.split(',')[1];
-        if (!base64Data) {
-          throw new Error('Failed to capture image data.');
-        }
-
+        if (!base64Data) throw new Error('Failed to capture image data.');
         const result = await analyzeImage(base64Data, targetLanguage);
         setAnalysisResult(result);
       } catch (err) {
@@ -158,11 +162,9 @@ const App: React.FC = () => {
 
   const handleFileUploadAndAnalyze = useCallback(async (file: File) => {
     if (isLoading) return;
-
     setIsLoading(true);
     setError(null);
     setAnalysisResult(null);
-
     const reader = new FileReader();
     reader.onload = async (event) => {
       const dataUrl = event.target?.result as string;
@@ -171,9 +173,7 @@ const App: React.FC = () => {
         setIsCameraActive(false);
         try {
           const base64Data = dataUrl.split(',')[1];
-          if (!base64Data) {
-            throw new Error('Failed to read image data.');
-          }
+          if (!base64Data) throw new Error('Failed to read image data.');
           const result = await analyzeImage(base64Data, targetLanguage, undefined, file.type);
           setAnalysisResult(result);
         } catch (err) {
@@ -195,18 +195,13 @@ const App: React.FC = () => {
   
   const handleReanalyze = useCallback(async (customPrompt: string, newLanguage: string) => {
     if (!currentImage || isRethinking || isLoading || isGeneratingMore) return;
-
     setIsRethinking(true);
     setError(null);
     setTargetLanguage(newLanguage);
-
     try {
         const base64Data = currentImage.split(',')[1];
         const mimeType = currentImage.match(/data:(.*);base64,/)?.[1] ?? 'image/jpeg';
-        if (!base64Data) {
-          throw new Error('Failed to get image data for re-analysis.');
-        }
-
+        if (!base64Data) throw new Error('Failed to get image data for re-analysis.');
         const result = await analyzeImage(base64Data, newLanguage, customPrompt, mimeType);
         setAnalysisResult(result);
       } catch (err) {
@@ -218,17 +213,12 @@ const App: React.FC = () => {
   
   const handleGenerateMore = useCallback(async () => {
     if (!currentImage || isRethinking || isLoading || isGeneratingMore) return;
-
     setIsGeneratingMore(true);
     setError(null);
-
     try {
         const base64Data = currentImage.split(',')[1];
         const mimeType = currentImage.match(/data:(.*);base64,/)?.[1] ?? 'image/jpeg';
-        if (!base64Data) {
-          throw new Error('Failed to get image data for generating more phrases.');
-        }
-
+        if (!base64Data) throw new Error('Failed to get image data for generating more phrases.');
         const result = await analyzeImage(base64Data, targetLanguage, "Generate a new and different set of phrases based on the image.", mimeType);
         setAnalysisResult(result);
       } catch (err) {
@@ -243,6 +233,10 @@ const App: React.FC = () => {
     setError(null);
     setCurrentImage(null);
   };
+
+  if (!user) {
+    return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
+  }
 
   const showUI = !isLoading && !analysisResult && !error;
 
@@ -260,7 +254,7 @@ const App: React.FC = () => {
       <div className={`absolute inset-0 flex flex-col justify-between p-4 sm:p-6 transition-opacity duration-300 ${showUI ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         <header className="flex items-center justify-between bg-black/40 backdrop-blur-md px-4 py-3 rounded-full">
           <div className="flex-1 flex justify-start">
-            {/* Placeholder for potential future left-aligned icons */}
+            <img src={user.picture} alt={user.name} title={user.name} className="w-9 h-9 rounded-full border-2 border-cyan-500/50" />
           </div>
           <div className="flex items-center justify-center gap-3 flex-1">
             <SparkleIcon className="w-6 h-6 text-cyan-400" />
@@ -287,6 +281,14 @@ const App: React.FC = () => {
                   {savedPhrases.length}
                 </span>
               )}
+            </button>
+            <div className="w-px h-6 bg-white/20 mx-1"></div>
+            <button
+              onClick={handleLogout}
+              className="relative text-white/80 hover:text-white transition-colors p-2 rounded-full hover:bg-white/10"
+              aria-label="Sign out"
+            >
+              <SignOutIcon className="w-6 h-6" />
             </button>
           </div>
         </header>
