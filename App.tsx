@@ -13,6 +13,7 @@ import ApiKeySelector from './components/ApiKeySelector';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [hasCompletedLogin, setHasCompletedLogin] = useState<boolean>(false);
   const [hasApiKey, setHasApiKey] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
@@ -35,11 +36,18 @@ const App: React.FC = () => {
     if (savedUser) {
       try {
         setUser(JSON.parse(savedUser));
+        setHasCompletedLogin(true);
       } catch (e) {
         console.error("Failed to parse user profile from localStorage", e);
         localStorage.removeItem('userProfile');
       }
     }
+
+    const loginCompleted = localStorage.getItem('hasCompletedLogin');
+    if (loginCompleted === 'true') {
+      setHasCompletedLogin(true);
+    }
+
     // Check if API key is configured
     checkApiKey();
   }, []);
@@ -89,7 +97,14 @@ const App: React.FC = () => {
   
   const handleLoginSuccess = (profile: UserProfile) => {
     setUser(profile);
+    setHasCompletedLogin(true);
     localStorage.setItem('userProfile', JSON.stringify(profile));
+    localStorage.setItem('hasCompletedLogin', 'true');
+  };
+
+  const handleSkipLogin = () => {
+    setHasCompletedLogin(true);
+    localStorage.setItem('hasCompletedLogin', 'true');
   };
 
   const handleLogout = () => {
@@ -99,7 +114,9 @@ const App: React.FC = () => {
       });
     }
     setUser(null);
+    setHasCompletedLogin(false);
     localStorage.removeItem('userProfile');
+    localStorage.removeItem('hasCompletedLogin');
   };
 
   const isPhraseSaved = useCallback((phrase: Phrase) => {
@@ -248,8 +265,8 @@ const App: React.FC = () => {
     setCurrentImage(null);
   };
 
-  if (!user) {
-    return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
+  if (!hasCompletedLogin) {
+    return <LoginScreen onLoginSuccess={handleLoginSuccess} onSkipLogin={handleSkipLogin} />;
   }
 
   if (!hasApiKey) {
@@ -272,7 +289,13 @@ const App: React.FC = () => {
       <div className={`absolute inset-0 flex flex-col justify-between p-4 sm:p-6 transition-opacity duration-300 ${showUI ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         <header className="flex items-center justify-between bg-black/40 backdrop-blur-md px-4 py-3 rounded-full">
           <div className="flex-1 flex justify-start">
-            <img src={user.picture} alt={user.name} title={user.name} className="w-9 h-9 rounded-full border-2 border-cyan-500/50" />
+            {user ? (
+              <img src={user.picture} alt={user.name} title={user.name} className="w-9 h-9 rounded-full border-2 border-cyan-500/50" />
+            ) : (
+              <div className="w-9 h-9 rounded-full border-2 border-gray-500/50 bg-gray-700/50 flex items-center justify-center">
+                <span className="text-white text-sm font-bold">G</span>
+              </div>
+            )}
           </div>
           <div className="flex items-center justify-center gap-3 flex-1">
             <SparkleIcon className="w-6 h-6 text-cyan-400" />

@@ -12,9 +12,10 @@ const GOOGLE_CLIENT_ID = "628310347629-i2kbu9rohc3vdd70lbed6uhtv6a1oq4a.apps.goo
 
 interface LoginScreenProps {
   onLoginSuccess: (profile: UserProfile) => void;
+  onSkipLogin: () => void;
 }
 
-const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
+const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onSkipLogin }) => {
   const signInButtonRef = useRef<HTMLDivElement>(null);
 
   const handleCredentialResponse = useCallback((response: any) => {
@@ -72,7 +73,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         <p className="text-gray-400 mb-8">
           An Augmented Reality app to learn contextual Spanish. Sign in to begin your journey.
         </p>
-        
+
         {GOOGLE_CLIENT_ID.startsWith("YOUR_GOOGLE_CLIENT_ID") ? (
             <div className="bg-yellow-900/50 border border-yellow-500/50 text-yellow-200 px-4 py-3 rounded-lg">
                 <p className="font-bold">Configuration Needed</p>
@@ -81,6 +82,15 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         ) : (
             <div ref={signInButtonRef} className="flex justify-center"></div>
         )}
+
+        <div className="mt-6">
+          <button
+            onClick={onSkipLogin}
+            className="text-gray-400 hover:text-white text-sm underline decoration-gray-600 hover:decoration-white transition-colors"
+          >
+            Continue Without Login
+          </button>
+        </div>
       </div>
     </div>
   );
