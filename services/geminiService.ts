@@ -2,10 +2,11 @@ import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { AnalysisResult } from '../types';
 
 const getGenAI = () => {
-  const API_KEY = process.env.API_KEY;
+  // Check localStorage first (for user-provided keys), then fall back to environment variable
+  const API_KEY = localStorage.getItem('gemini_api_key') || process.env.API_KEY;
   if (!API_KEY) {
     // This case should ideally be handled by the UI before calling the service
-    throw new Error("API_KEY environment variable is not set.");
+    throw new Error("GEMINI_API_KEY_NOT_SET");
   }
   return new GoogleGenAI({ apiKey: API_KEY });
 }

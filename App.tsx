@@ -9,9 +9,11 @@ import { SparkleIcon, BookmarkIcon, UploadIcon, CameraIcon, SignOutIcon } from '
 import SavedPhrasesDisplay from './components/SavedPhrasesDisplay';
 import ImageUploader from './components/ImageUploader';
 import LoginScreen from './components/LoginScreen';
+import ApiKeySelector from './components/ApiKeySelector';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [hasApiKey, setHasApiKey] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +40,14 @@ const App: React.FC = () => {
         localStorage.removeItem('userProfile');
       }
     }
+    // Check if API key is configured
+    checkApiKey();
   }, []);
+
+  const checkApiKey = () => {
+    const apiKey = localStorage.getItem('gemini_api_key') || process.env.API_KEY;
+    setHasApiKey(!!apiKey);
+  };
 
   useEffect(() => {
     try {
@@ -111,12 +120,17 @@ const App: React.FC = () => {
   const handleAnalysisError = (err: unknown) => {
     console.error(err);
     const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred.';
-    if (errorMessage.includes('API_KEY')) {
-        setError("The Gemini API key is not configured. Please set the API_KEY environment variable.");
+    if (errorMessage.includes('GEMINI_API_KEY_NOT_SET') || errorMessage.includes('API_KEY')) {
+        setHasApiKey(false);
+        setError(null); // Clear error, we'll show the API key selector instead
     } else {
         setError(errorMessage);
     }
   }
+
+  const handleApiKeySet = () => {
+    checkApiKey();
+  };
 
   const handleCaptureAndAnalyze = useCallback(async () => {
     if (!videoRef.current || !canvasRef.current || isLoading) return;
@@ -236,6 +250,10 @@ const App: React.FC = () => {
 
   if (!user) {
     return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
+  }
+
+  if (!hasApiKey) {
+    return <ApiKeySelector onApiKeySet={handleApiKeySet} />;
   }
 
   const showUI = !isLoading && !analysisResult && !error;
